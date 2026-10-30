@@ -6,7 +6,7 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "1.0"
+    MARKETING_VERSION: "2.0"
     CURRENT_PROJECT_VERSION: "1"
 targets:
   HangarVoiceLog:
@@ -28,6 +28,13 @@ targets:
         NSCameraUsageDescription: Hangar Log takes photos of the work for your records.
         NSPhotoLibraryUsageDescription: Hangar Log can attach photos you already took.
         UIFileSharingEnabled: true
+        UIAppFonts:
+          - BarlowCondensed-Bold.ttf
+          - BarlowCondensed-SemiBold.ttf
+          - Barlow-Regular.ttf
+          - Barlow-SemiBold.ttf
+          - IBMPlexMono-Medium.ttf
+        UIUserInterfaceStyle: Automatic
         LSSupportsOpeningDocumentsInPlace: true
     settings:
       base:

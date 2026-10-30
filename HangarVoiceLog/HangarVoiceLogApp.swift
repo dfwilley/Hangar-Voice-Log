@@ -6,13 +6,9 @@ struct HangarVoiceLogApp: App {
 
     var body: some Scene {
         WindowGroup {
-            EntryListView()
+            ContentView()
                 .environmentObject(store)
+                .tint(Theme.accent)
         }
     }
-}
-
-enum AppSettings {
-    static let tailKey = "tailNumber"
-    static let defaultTail = "N721NE"
 }

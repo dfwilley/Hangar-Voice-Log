@@ -1,0 +1,81 @@
+name: Build iPhone app
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show tool versions
+        run: |
+          sw_vers
+          xcodebuild -version
+
+      - name: Generate Xcode project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Run tests on an iPhone simulator
+        run: |
+          SIM_ID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          data = json.load(sys.stdin)["devices"]
+          ios = sorted([k for k in data if "iOS" in k], reverse=True)
+          for runtime in ios:
+              for d in data[runtime]:
+                  if d["name"].startswith("iPhone"):
+                      print(d["udid"]); sys.exit(0)
+          sys.exit("No iPhone simulator found")
+          ')
+          echo "Using simulator $SIM_ID"
+          xcodebuild test \
+            -project HangarVoiceLog.xcodeproj \
+            -scheme HangarVoiceLog \
+            -destination "id=$SIM_ID" \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Build unsigned app for iPhone
+        run: |
+          xcodebuild archive \
+            -project HangarVoiceLog.xcodeproj \
+            -scheme HangarVoiceLog \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -archivePath build/HangarVoiceLog.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: Package .ipa file
+        run: |
+          mkdir -p build/Payload
+          cp -R build/HangarVoiceLog.xcarchive/Products/Applications/HangarVoiceLog.app build/Payload/
+          cd build && zip -qry HangarVoiceLog.ipa Payload
+          ls -la HangarVoiceLog.ipa
+
+      - name: Keep the app file with this run
+        uses: actions/upload-artifact@v4
+        with:
+          name: HangarVoiceLog-ipa
+          path: build/HangarVoiceLog.ipa
+
+      - name: Publish to the Releases page
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="build-${{ github.run_number }}"
+          gh release create "$TAG" build/HangarVoiceLog.ipa \
+            --title "Hangar Log build ${{ github.run_number }}" \
+            --notes "Unsigned app file. Install it with Sideloadly using your Apple ID (see INSTALL.md)." \
+            --latest
